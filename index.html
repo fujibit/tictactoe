@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tic Tac Toe – fujibit</title>
+  <meta name="description" content="A clean, mobile-friendly Tic Tac Toe game. Play vs Friend or vs Bot." />
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --card:#111827ee; /* gray-900 */
+      --muted:#94a3b8; /* slate-400 */
+      --accent:#ff0000; /* sky-400 */
+      --accent-2:#3bd6ee; /* green-500 */
+      --danger:#ef4444; /* red-500 */
+      --ring:#7dd3fc55;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+      background: radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, var(--bg) 40%, #0b1224 100%);
+      color:#e5e7eb; display:grid; place-items:center; padding:16px;
+    }
+    .app{width:min(920px,100%);}
+    .top{
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    }
+    .title{font-weight:700; letter-spacing:.3px; font-size:clamp(20px,3.6vw,28px); display:flex; align-items:center; gap:10px}
+    .title .logo{width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#a78bfa); display:inline-grid; place-items:center; font-weight:900; color:#0a0a0a}
+    .card{
+      background:linear-gradient(180deg, #0b1224 0%, var(--card) 100%);
+      border:1px solid #1f2937; border-radius:18px; padding:16px; box-shadow:0 10px 30px #0006;
+    }
+    .controls{display:flex; gap:10px; flex-wrap:wrap}
+    .select, .btn{
+      appearance:none; border:none; border-radius:12px; padding:10px 12px; font-weight:600; color:#e5e7eb;
+      background:#0b1328; border:1px solid #1f2937; cursor:pointer; transition:.2s transform, .2s box-shadow, .2s border-color;
+    }
+    .select:focus, .btn:focus{outline:none; box-shadow:0 0 0 6px var(--ring)}
+    .btn.primary{background:linear-gradient(180deg, #0ea5e9, #0284c7); border-color:#075985}
+    .btn.ghost{background:#0b1328}
+    .btn.warn{background:linear-gradient(180deg,#ef4444,#b91c1c); border-color:#7f1d1d}
+    .status{font-size:14px; color:var(--muted); margin-top:8px}
+
+    .board{
+      margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+    }
+    .cell{
+      aspect-ratio:1/1; border-radius:16px; display:grid; place-items:center; font-weight:900;
+      font-size: clamp(36px, 8vw, 64px); cursor:pointer; user-select:none; position:relative;
+      background:linear-gradient(180deg,#0b1328,#0a1225); border:1px solid #1f2937; transition:.15s transform, .2s border-color, .2s background;
+    }
+    .cell:hover{transform:translateY(-1px); border-color:#334155}
+    .cell.disabled{pointer-events:none; opacity:.6}
+    .cell.win{background:linear-gradient(180deg,#0b1328,#052e1b); border-color:#14532d}
+    .cell.lose{background:linear-gradient(180deg,#0b1328,#2a0b0b); border-color:#7f1d1d}
+
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+    .score{display:flex; gap:10px}
+    .badge{padding:8px 12px; border-radius:999px; background:#0b1328; border:1px solid #1f2937; font-weight:700; font-size:13px}
+    .badge .dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px}
+    .x .dot{background:var(--accent)}
+    .o .dot{background:var(--accent-2)}
+
+    footer{margin-top:14px; text-align:center; color:#9ca3af; font-size:12px}
+    a{color:#93c5fd}
+
+    @media (min-width:720px){
+      .layout{display:grid; grid-template-columns: 1fr 320px; gap:16px}
+      .board{grid-column:1}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <div class="title"><span class="logo">XO</span> Tic Tac Toe</div>
+      <div class="controls">
+        <select id="mode" class="select" aria-label="Game mode">
+          <option value="pvp">👥 Vs Friend</option>
+          <option value="bot">🤖 Vs Bot</option>
+        </select>
+        <select id="botLevel" class="select" aria-label="Bot difficulty" title="Bot difficulty">
+          <option value="smart">Smart</option>
+          <option value="easy">Easy</option>
+        </select>
+        <button id="newGame" class="btn primary">New Game</button>
+        <button id="resetScore" class="btn ghost">Reset Score</button>
+        <button id="clear" class="btn warn">Clear Board</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div id="board" class="board" role="grid" aria-label="Tic Tac Toe board"></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-weight:700">Status</div>
+            <div id="status" class="status">X starts. Your move.</div>
+          </div>
+          <div class="score">
+            <div class="badge x"><span class="dot"></span>X Wins: <span id="xWins">0</span></div>
+            <div class="badge o"><span class="dot"></span>O Wins: <span id="oWins">0</span></div>
+            <div class="badge">Draws: <span id="draws">0</span></div>
+          </div>
+        </div>
+        <footer>
+          Built with ♥ by fujibit. Tip: Press <strong>R</strong> to restart, <strong>C</strong> to clear.
+        </footer>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const xWinsEl = document.getElementById('xWins');
+  const oWinsEl = document.getElementById('oWins');
+  const drawsEl = document.getElementById('draws');
+  const newBtn = document.getElementById('newGame');
+  const resetBtn = document.getElementById('resetScore');
+  const clearBtn = document.getElementById('clear');
+  const modeSel = document.getElementById('mode');
+  const levelSel = document.getElementById('botLevel');
+
+  const WINS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let cells = Array(9).fill(null);
+  let turn = 'X';
+  let over = false;
+  let score = { X:0, O:0, D:0 };
+
+  function saveScore(){ localStorage.setItem('ttt-score', JSON.stringify(score)); }
+  function loadScore(){
+    try{ const s = JSON.parse(localStorage.getItem('ttt-score')); if(s){ score=s; } }catch(e){}
+    xWinsEl.textContent = score.X; oWinsEl.textContent = score.O; drawsEl.textContent = score.D;
+  }
+
+  function draw(){
+    boardEl.innerHTML = '';
+    boardEl.setAttribute('aria-label', `Tic Tac Toe board. ${turn}'s turn.`);
+    for(let i=0;i<9;i++){
+      const btn = document.createElement('button');
+      btn.className = 'cell';
+      btn.role = 'gridcell';
+      btn.setAttribute('aria-label', `Cell ${i+1}`);
+      btn.dataset.idx = i;
+      btn.textContent = cells[i] || '';
+      if(over || cells[i]) btn.classList.add('disabled');
+      btn.addEventListener('click', onCell);
+      boardEl.appendChild(btn);
+    }
+  }
+
+  function checkWin(b){
+    for(const line of WINS){
+      const [a,b1,c] = line; const v = b[a];
+      if(v && v===b[b1] && v===b[c]) return {player:v, line};
+    }
+    if(b.every(Boolean)) return {player:null, line:null, draw:true};
+    return null;
+  }
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  function end(win){
+    over = true;
+    const kids = [...boardEl.children];
+    if(win.draw){ score.D++; drawsEl.textContent = score.D; setStatus('Draw!'); saveScore(); return; }
+    if(win.player){
+      score[win.player]++; if(win.player==='X') xWinsEl.textContent=score.X; else oWinsEl.textContent=score.O;
+      setStatus(`${win.player} wins!`);
+      saveScore();
+      for(const i of win.line){ kids[i].classList.add('win'); }
+      for(let i=0;i<9;i++) if(!win.line.includes(i) && cells[i]) kids[i].classList.add('lose');
+    }
+  }
+
+  function onCell(e){
+    const i = +e.currentTarget.dataset.idx;
+    if(over || cells[i]) return;
+    move(i, turn);
+    const state = checkWin(cells);
+    if(state){ end(state); return; }
+    turn = turn==='X' ? 'O' : 'X';
+    setStatus(`${turn}'s turn`);
+    draw();
+    if(modeSel.value==='bot' && turn==='O'){
+      // small delay for UX
+      setTimeout(()=>{ botMove(); }, 220);
+    }
+  }
+
+  function move(i, p){ cells[i]=p; }
+
+  function available(b){ return b.map((v,i)=>v?null:i).filter(v=>v!==null); }
+
+  function botMove(){
+    const lvl = levelSel.value;
+    let i = (lvl==='easy') ? randomMove() : smartMove();
+    if(i==null){ i = randomMove(); }
+    move(i,'O');
+    const state = checkWin(cells);
+    draw();
+    if(state){ end(state); return; }
+    turn='X'; setStatus(`X's turn`);
+  }
+
+  function randomMove(){
+    const opts = available(cells);
+    if(!opts.length) return null;
+    return opts[Math.floor(Math.random()*opts.length)];
+  }
+
+  // Heuristic bot: win > block > center > corner > sides
+  function smartMove(){
+    // try to win
+    for(const i of available(cells)){
+      const clone = cells.slice(); clone[i]='O';
+      if(checkWin(clone)?.player==='O') return i;
+    }
+    // try to block
+    for(const i of available(cells)){
+      const clone = cells.slice(); clone[i]='X';
+      if(checkWin(clone)?.player==='X') return i;
+    }
+    // center
+    if(cells[4]==null) return 4;
+    // corners
+    const corners=[0,2,6,8].filter(i=>cells[i]==null);
+    if(corners.length) return corners[Math.floor(Math.random()*corners.length)];
+    // sides
+    const sides=[1,3,5,7].filter(i=>cells[i]==null);
+    if(sides.length) return sides[Math.floor(Math.random()*sides.length)];
+    return null;
+  }
+
+  function newGame(){
+    cells = Array(9).fill(null); over=false; turn='X'; draw(); setStatus('X starts. Your move.');
+    if(modeSel.value==='bot' && turn==='O'){ setTimeout(botMove, 200); }
+  }
+
+  function clearBoard(){ cells = Array(9).fill(null); over=false; draw(); setStatus(`${turn}'s turn`); }
+
+  function resetScore(){ score={X:0,O:0,D:0}; saveScore(); loadScore(); setStatus('Score reset. New match!'); }
+
+  // Events
+  newBtn.addEventListener('click', newGame);
+  resetBtn.addEventListener('click', resetScore);
+  clearBtn.addEventListener('click', clearBoard);
+  modeSel.addEventListener('change', newGame);
+
+  // Hotkeys
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='r' || e.key==='R') newGame();
+    if(e.key==='c' || e.key==='C') clearBoard();
+  });
+
+  // Init
+  loadScore();
+  draw();
+  setStatus('X starts. Your move.');
+})();
+</script>
+</body>
+</html>
